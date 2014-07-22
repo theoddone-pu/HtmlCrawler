@@ -6,7 +6,9 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 
 import org.jsoup.Jsoup;
@@ -26,8 +28,8 @@ import org.jsoup.select.Elements;
 public class HtmlUnitCrawler {
 
 	public static void main(String[] args) throws Exception {
-		//http://detail.tmall.com/item.htm?id=20150366437
-		//http://detail.tmall.com/item.htm?id=35259286943测试
+		// http://detail.tmall.com/item.htm?id=20150366437
+		// http://detail.tmall.com/item.htm?id=35259286943测试
 		String url = "http://detail.tmall.com/item.htm?id=20150366437";
 		Set<Cookie> ck = null;
 		try {
@@ -35,13 +37,14 @@ public class HtmlUnitCrawler {
 			// 设置webClient的相关参数
 			webClient.getOptions().setJavaScriptEnabled(true);
 			webClient.getOptions().setCssEnabled(false);
-			webClient.setAjaxController(new NicelyResynchronizingAjaxController());
+			webClient
+					.setAjaxController(new NicelyResynchronizingAjaxController());
 			// webClient.getOptions().setTimeout(50000);
 			webClient.getOptions().setThrowExceptionOnScriptError(false);
 			// 模拟浏览器打开一个目标网址
 			HtmlPage rootPage = webClient.getPage(url);
 			CookieManager cm = webClient.getCookieManager();
-			//得到cookie
+			// 得到cookie
 			ck = cm.getCookies();
 			System.out.println(ck.toString());
 		} catch (Exception e) {
@@ -93,21 +96,40 @@ public class HtmlUnitCrawler {
 		page = wc.getPage(request);
 		String content = page.getContent();// 网页内容保存在content里
 		String html = content.replace("jsonp1843({html:\"", "").split("\",")[0].replace("&quot;", "").replace("\\\"", "");		
+		List<String> list = new ArrayList<String>();
+		StringBuilder sb = new StringBuilder();
 		if (html == null) {
 			System.out.println("采集 " + url + " 失败!!!");
 		} else {
-			System.out.println(content);
-			File file = new File("G:"+File.separator+"text.txt");
-			OutputStream out = new FileOutputStream(file);
-			byte[] b = html.getBytes();
-			for(byte tem:b){
-				out.write(tem);
-			}
-			out.close();
-			
+			System.out.println(html);			
 			org.jsoup.nodes.Document doc = Jsoup.parse(html);
-			Elements cate = doc.select("p.date");
-			System.out.println(cate.text());
+			Elements date = doc.select("p[class=date]");
+			Elements time = doc.select("p.time");
+			Elements cate = doc.select("td[class=cell-align-l][style]");
+			Elements price = doc.select("td.price");
+			Elements name = doc.select("td[class=cell-align-l][buyer]");//td[class=cell-align-l][buyer]
+			Elements num = doc.select("td[class=quantity]");
+			//System.out.println(name.get(0).text());
+			
+				for (int k = 0; k <= 14; k++) {
+					// System.out.println(k);
+					String info = name.get(k).text() + " " + cate.get(k).text()
+							+ " " + date.get(k).text() + " "
+							+ time.get(k).text() + " " + num.get(k).text()
+							+ " " + price.get(k).text();
+					sb.append(info);
+					sb.append("\r\n");
+					//System.out.println(info);
+					list.add(k, info);
+				}
+				File file = new File("G:"+File.separator+url.split("item_id=")[1].split("&")[0]+".txt");
+				OutputStream out = new FileOutputStream(file);
+				byte[] b = sb.toString().getBytes();
+				for(byte tem:b){
+					out.write(tem);
+				}
+				out.close();
+			//System.out.println("list="+list.size()+" "+list.get(3));
 		}
 		// 搞定了
 		CookieManager CM = wc.getCookieManager(); // WC = Your WebClient's name
